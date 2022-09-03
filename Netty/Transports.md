@@ -1,0 +1,1 @@
+Network always has the same type data flow : Bytes
