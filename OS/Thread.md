@@ -28,7 +28,8 @@
 3. 경제성 - 메모리와 자원은 비용이다. Thread는 단위가 작아서 context switching에도 유리함
 4. 확장성 (scailbilty) : 멀티 프로세서 환경에서 더욱 빠른 처리가 가능함(프로세서가 사용하는 단위가 Thread이기 때문)
 
-
+https://stackoverflow.com/questions/41632073/do-threads-share-local-variables
+https://www.quora.com/What-does-it-mean-when-threads-have-their-own-registers
 
 ### Concurrency(병행성) vs Parallism(병렬성) 
 
@@ -305,8 +306,256 @@ public class Sample {
 
 ```
 
+## Implicit Threading
+
+- 프로그래머가 multi thread 설계에 어려움
+- 개발자가 하는 것이 아닌, 컴파일러와 runtime lib가 thread creation / execution 
+- 그래도 여전히 thread executable한 작업을 식별하는 작업은 개발자가...
 
 
+#### Thread Pool
+
+- making new thread is less expensive than new process(fork())
+- but still problem
+    - Time : making new thread cost time 
+    - Limitless Thread : making limitless thread can be critical
+- make thread pool
+- 프로세스 시작시 일정한 수의 스레드를 풀로 만듬 
+- 스레드를 생성하지 않고, 이미 존재하는 스레드 풀에 task 제출 
+    - idle thread가 있으면 task 실행
+    - idle thread가 없으면 thread creation 까지 대기하거나, idle thread 대기 
+
+Pros
+
+- faster thread service(no creation time)
+- can limit thread ( start 5 , max 10 )
+- task 의 실행을 thread 생성 시점에 할 필요가 없어서 분리할 수 있다.
+
+#### Java Thread Pool
+
+- newSingleThredExecutor() : 크기가 1인 풀 생성
+- newFixedThreadPool(int size) : 지정된 수의 스레드 
+- newCachedThreadPool() : max unlimited, if 사용가능하면, 전에 생성된 thread 사용, 만약 모든 threadr가 사용중에 있을시, thread 생성, 60초간 idle 시 thread 제거 
+
+
+```java
+
+public class ThreadPoolExample {
+    
+    public static void main(String[] args){
+	int numTasks = Integer.parseInt(args[0].trim());
+
+	ExecutorService pool = Executors.newCachedThreadPool();
+
+	for(int i = 0; i < numTasks ; i++){
+	    pool.execute(new Task());
+	}
+
+	pool.shutdown();
+
+    }
+
+}
+```
+
+#### ForkJoin
+
+```java
+
+ForkJoinPool pool = new ForkJoinPool();
+
+int[] array = new int[SIZE];
+
+SumTask task = new SumTask(0, SIZE -1, array);
+int sum = pool.invoke(task) ;
+
+```
+
+```java
+
+
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveTask;
+
+public class Main {
+
+    public static void main(String[] args) {
+
+        long l = System.currentTimeMillis();
+        int SIZE = 400000000;
+
+        ForkJoinPool forkJoinPool = new ForkJoinPool();
+        int[] array = new int[SIZE];
+        for(int i = 0 ;i < SIZE; i++){
+            array[i] = i;
+        }
+        SumTask sumTask = new SumTask(0, SIZE-1, array);
+
+        Long invoke = forkJoinPool.invoke(sumTask);
+
+        System.out.println(System.currentTimeMillis() - l  + " , answer "  + invoke);
+
+        l = System.currentTimeMillis();
+        long t = 0L;
+        for(int i = 0 ; i < SIZE; i++){
+            t += array[i];
+        }
+        System.out.println(System.currentTimeMillis() - l  + " , answer " + t);
+
+    }
+
+    public static class SumTask extends RecursiveTask<Long>  {
+
+        static final int THRESHOLD = 1000;
+        private int begin;
+        private int end;
+        private int[] array;
+
+        public SumTask(int begin, int end, int[] array) {
+            this.begin = begin;
+            this.end = end;
+            this.array = array;
+        }
+
+        @Override
+        protected Long compute() {
+            if(end - begin < THRESHOLD){
+                long sum = 0L;
+                for(int i = begin; i <= end; i++){
+                    sum += array[i];
+                }
+                return sum;
+            }else{
+                int mid = (begin + end) / 2;
+
+                SumTask leftTask = new SumTask(begin, mid, array);
+                SumTask rightTask = new SumTask(mid+1, end, array);
+
+                leftTask.fork();
+                rightTask.fork();
+
+                return rightTask.join() + leftTask.join();
+            }
+
+        }
+    }
+}
+
+```
+
+
+### Threading Issues
+
+####  Fork() / Exec() 
+
+Fork() -> 모든 스레드를 복제할 것인가? 쓰레드 하나만 가지는 프로세스? 
+- 운영체제에서 두가지 모두 제공
+- 모든 쓰레드를 복제할 것인지, fork()를 호출한 쓰레드만 복제할 것인지
+
+fork() -> exec() 의 경우 모든 쓰레드를 복제하는 것은 비효율적,  왜냐면 exec()으로 호출된 프로세스가 모든 것을 대체할 것이기 때문
+fork() 만 할 경우 대부분 전부 복제하는게 좋음
+
+#### Signal Handling 
+
+- Event -> Signal 
+- Signal reached to Process
+- Signal must be handled
+
+동기식 신호 : 신호를 발생시킨 연산을 수행중인 프로세스에게 전달
+- illegal memory access, divided by 0 
+비동기식 신호 : 신호가 프로세스 외부에서 발생
+- 강제종료 ( ctr c ) , 타이머 만료 
+
+
+All signals handled by two types of handler 
+
+- Default Signal Handler
+    - 모든 신호에 커널이 실행시킴
+    - 사용자 정의 처리기에 의해 대체될 수 있음
+    - 일부 신호는 무시될 수 있음
+    - 일부 신호는 강제처리되야함 ( 메모리 접근)
+- User Defined Signal Handler
+
+
+다중 스레드에서 신호처리 -> 
+- 신호는 항상 프로세스에 전달된다.
+- A / B 스레드가 동시에 프로세스에서 일하고 있을 때 
+- A 가 divdied by 0 연산시 
+- 프로세스에 전달된다.
+
+어느 스레드에 신호를 전달해야 하는가? 
+
+1. 신호가 적용될 스레드  ( A )
+2. 모든 스레드  (A , B)
+3. 몇몇 스레드  ( B ?  )
+4. 특정 스레드 지정 ( A only )
+
+동기식 신호 -> 무조건 그 스레드에게 전달되어야 함 
+비동기식 신호 -> 명확하지 않음, 모든 스레드에게 전달 되어야 함
+
+```bash
+ kill(pid_t, int signal)
+```
+
+Unix 의 경우 스레드마다 무시할 신호를 지정할 수 있다 
+
+```bash
+kill (pthred_t tid, int signal)
+```
+
+Thread tid 로 지정할 수있게도 해준다.
+
+
+
+#### Thread Cancellation 
+
+- 스레드가 끝나기 전에 강제 종료
+    - DB search 시 결과 찾음, 브라우저 취소 
+- 취소 되어야 할 thread = target thread
+- thread 할당 자원을 어떻게 회수할 것인가? 
+
+1. asynchronous cancellation :  한 스레드가 target thread 즉시 종료 
+2. deferred cancellation : target thread가 종료되어야 할 지 점검, gracefully terminate 가능 
+
+
+```bash
+pthread_t tid; 
+
+pthread_create(&tid, 0, worker, NULL);
+
+pthread_cancel(tid); // 취소하는 요청을 표시함, async, deferred  선택할 수 있음, default deffered
+// clean up handler 라는 정리 핸들러 등록 가능 
+
+pthread_testcancel() // 취소를 취소함
+
+pthread_join(tid, NULL);
+
+```
+
+java 의 경우 interrupt 로 처리함, 
+스레드의 경우 자신이 interrupt 되었는지 확인 가능하다
+```java
+
+Thread worker;
+
+worker.interrupt()
+
+while(!Thread.currentThread().isInterrupted()) 
+```
+
+#### Thread Local Storage
+
+- Thread 자신만 access 가능한 공간 
+- 지역변수는 함수 호출시에만 존재하지만 TLS는 전역에서 공유된다
+- Java의 경우 ThreadLocal<T> 에 대한 set(), get() method 제공
+
+
+#### Scheduler Activation 
+
+- User Thread lib - Kernel 통신문제
+- many to many 모델에서 해결해야할 문제 
+- LWP : 경량 프로세스를 중간에 둔다
+- 하나의 kernel thread 에 attach 
 
 
 
