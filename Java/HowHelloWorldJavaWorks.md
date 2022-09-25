@@ -350,5 +350,5 @@ JNI global refs: 14, weak refs: 0
 
 <img src="https://blog.jamesdbloom.com/images_2013_11_17_17_56/JVM_Internal_Architecture_small.png">
 
-
+<img src="./JVM_Internal_Architecture_small.png">
 
