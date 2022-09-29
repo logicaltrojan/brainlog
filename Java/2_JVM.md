@@ -33,6 +33,7 @@ java HelloWorld
 <img src="https://media.geeksforgeeks.org/wp-content/uploads/jvmclassloader.jpg">
 
 
+- ClassLoader는 jvm subsystem으로, class file을 jvm memory에 올리는 역할을 함 
 - 자바 실행중 처음보는 class는 dependency에 로드
 - 만약 자신이 찾지 못할 경우, 부모 class에 delegate
 - bootstrap까지 찾지 못할 경우 ClassNotFoundException
@@ -59,6 +60,7 @@ interface | class implemented interface
 field | every fields
 mathod | every methods
 attribute | class attribute(code file name)
+
 
 
 ```sh
@@ -118,6 +120,7 @@ https://blog.jamesdbloom.com/JVMInternals.html#constant_pool
 
 <img src="https://miro.medium.com/max/720/0*GMXQBZCEpGQMBjy-">
 
+<img src="./JVM_Internal_Architecture.png">
 
 ### Class Loader
 
@@ -230,6 +233,7 @@ stores
 - Runtime constant pool
     - Numeric constants, field reference, method reference, attribut , constant
     -
+    -
 ```java
 System.out.println("Hello, World!");
 
@@ -313,7 +317,7 @@ Constant pool:
 
 ### Heap Area - Thread Shares
 
-- 1 heap area per JVM 
+stack=2, locals=1, args_size=1- 1 heap area per JVM 
 - information of all object / correspoding instance vairable , arrays 
 - data stored in Method / Heaps are not thread safe 
 
@@ -383,12 +387,12 @@ Reference to constant pool
 
 - 프로그램을 수행하는 데 사용하는 application thread 
 - JVM background task 를 수행하기 위한 system thread
--
 - application thread는 main thread를 시작으로 만들어짐 (main thread가 전부 만듬)
 - system thread는 jvm의해 만들어지며 관리됨
 
-Compiler thread - byte code to native code compiling
-GC thread 
-Periodic task thread - timer event 
-Signal dispatcher thread - receive signal, and handle inside the JVM by calling appropirate JVM method
-VM thread - jvm safe point에서 일어나야 하는 operation 을 handle, 예를 들어 stop-the-world 의 경우, Thread 에서 더이상 객체 생성이 일어나지 않는 것이 보장되어야 하므로, 이 thread에서 task를 수행
+
+1. Compiler thread - byte code to native code compiling
+2. GC thread 
+3. Periodic task thread - timer event 
+4. Signal dispatcher thread - receive signal, and handle inside the JVM by calling appropirate JVM method
+5. VM thread - jvm safe point에서 일어나야 하는 operation 을 handle, 예를 들어 stop-the-world 의 경우, Thread 에서 더이상 객체 생성이 일어나지 않는 것이 보장되어야 하므로, 이 thread에서 task를 수행

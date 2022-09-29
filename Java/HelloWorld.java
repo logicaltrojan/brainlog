@@ -1,12 +1,12 @@
-
+import java.lang.reflect.Method;
 
 public class HelloWorld { 
 
     public static void main(String[] args) throws InterruptedException {
 
 	MyString myString = new MyString();
-	System.out.println(myString.getHelloWorld());
-	Thread.sleep(10000);
+
+
 	
 
     }
@@ -15,7 +15,7 @@ public class HelloWorld {
 
 	public String getHelloWorld(){
 
-	    String helloWorldString = "Hello, World";
+	    String helloWorldString = "Hello World";
 
 	    return helloWorldString;
 

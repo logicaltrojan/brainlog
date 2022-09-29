@@ -348,7 +348,166 @@ _java_thread_list=0x00006000016500a0, length=12, elements={
 JNI global refs: 14, weak refs: 0
 ```
 
-<img src="https://blog.jamesdbloom.com/images_2013_11_17_17_56/JVM_Internal_Architecture_small.png">
-
 <img src="./JVM_Internal_Architecture_small.png">
+
+
+
+### How Class file is executed by thread 
+
+Every class 
+
+```java
+
+package org.jvminternals;
+
+public class SimpleClass {
+
+    public void sayHello() {
+        System.out.println("Hello");
+    }
+
+}
+
+```
+Class file
+
+```sh
+javap -v -p -s -sysinfo -constants SimpleClass.class
+public class org.jvminternals.SimpleClass
+  SourceFile: "SimpleClass.java"
+  minor version: 0
+  major version: 51
+  flags: ACC_PUBLIC, ACC_SUPER
+Constant pool:
+   #1 = Methodref          #6.#17         //  java/lang/Object."<init>":()V
+   #2 = Fieldref           #18.#19        //  java/lang/System.out:Ljava/io/PrintStream;
+   #3 = String             #20            //  "Hello"
+   #4 = Methodref          #21.#22        //  java/io/PrintStream.println:(Ljava/lang/String;)V
+   #5 = Class              #23            //  org/jvminternals/SimpleClass
+   #6 = Class              #24            //  java/lang/Object
+   #7 = Utf8               <init>
+   #8 = Utf8               ()V
+   #9 = Utf8               Code
+  #10 = Utf8               LineNumberTable
+  #11 = Utf8               LocalVariableTable
+  #12 = Utf8               this
+  #13 = Utf8               Lorg/jvminternals/SimpleClass;
+  #14 = Utf8               sayHello
+  #15 = Utf8               SourceFile
+  #16 = Utf8               SimpleClass.java
+  #17 = NameAndType        #7:#8          //  "<init>":()V
+  #18 = Class              #25            //  java/lang/System
+  #19 = NameAndType        #26:#27        //  out:Ljava/io/PrintStream;
+  #20 = Utf8               Hello
+  #21 = Class              #28            //  java/io/PrintStream
+  #22 = NameAndType        #29:#30        //  println:(Ljava/lang/String;)V
+  #23 = Utf8               org/jvminternals/SimpleClass
+  #24 = Utf8               java/lang/Object
+  #25 = Utf8               java/lang/System
+  #26 = Utf8               out
+  #27 = Utf8               Ljava/io/PrintStream;
+  #28 = Utf8               java/io/PrintStream
+  #29 = Utf8               println
+  #30 = Utf8               (Ljava/lang/String;)V
+{
+  public org.jvminternals.SimpleClass();
+    Signature: ()V
+    flags: ACC_PUBLIC
+    Code:
+      stack=1, locals=1, args_size=1
+        0: aload_0
+        1: invokespecial #1    // Method java/lang/Object."<init>":()V
+        4: return
+      LineNumberTable:
+        line 3: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+          0      5      0    this   Lorg/jvminternals/SimpleClass;
+
+  public void sayHello();
+    Signature: ()V
+    flags: ACC_PUBLIC
+    Code:
+      stack=2, locals=1, args_size=1
+        0: getstatic      #2    // Field java/lang/System.out:Ljava/io/PrintStream;
+        3: ldc            #3    // String "Hello"
+        5: invokevirtual  #4    // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+        8: return
+      LineNumberTable:
+        line 6: 0
+        line 7: 8
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+          0      9      0    this   Lorg/jvminternals/SimpleClass;
+}
+```
+- Constant Pool : symbol table
+- Methods
+    1. signature / access flag
+    2. byte code
+    3. Line number table - for debugger 
+    4. Local Variable Table - the list of local variables provided in the frame 
+
+
+byte code operand 
+
+operand | description 
+-|-
+aload_0 | load an object reference into oprerand stack, aload_<n> refer to location in local variable array 
+ldc | used to push constnat from the run time constant pool
+getstatic | used to push a static value from a static field listed in run time constant pool
+
+<img src="./bytecode_explanation_SimpleClass.png">
+
+
+
+```sh
+0: getstatic      #2    // Field java/lang/System.out:Ljava/io/PrintStream;
+3: ldc            #3    // String "Hello"
+5: invokevirtual  #4    // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+8: return
+```
+
+<img src="./bytecode_explanation_sayHello.png">
+
+## How Methods are exceuted
+
+method resolution 
+
+https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-5.html#jvms-5.4.3
+https://enos.itcollege.ee/~jpoial/oop/lugemist/spec/vmspec/ConstantPool.doc.html
+
+https://blogs.oracle.com/javamagazine/post/java-class-file-constant-pool
+https://blogs.oracle.com/javamagazine/post/mastering-the-mechanics-of-java-method-invocation
+
+
+System.out("Hello") 를 constant pool에서 resolving 한 결과 
+
+
+```sh
+   #4 = Methodref          #21.#22        //  java/io/PrintStream.println:(Ljava/lang/String;)V
+  #21 = Class              #28            //  java/io/PrintStream
+  #22 = NameAndType        #29:#30        //  println:(Ljava/lang/String;)V
+  #28 = Utf8               java/io/PrintStream
+  #29 = Utf8               println
+  #30 = Utf8               (Ljava/lang/String;)V
+
+5: invokevirtual  #4    // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+java/io/PrintStream.println(Ljava/lang/String;)V
+
+```
+https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-5.html#jvms-5.4.3
+
+JVM은 이 method를 resolving 하기 위해 method table이라는 자료구조를 유지한다. (m-table 또는 v-table이라고 불리운다)
+mtable은 super-class를 포함하여, method name -> method  bytecode 를 Resolving 해준다.
+
+
+1. PrinsStream -> Class 찾음 
+2. PrintStream.println -> mtable에서 찾음
+3. bytecode pointer를 get 한뒤 PC 이동
+
+
+
+
+
 
