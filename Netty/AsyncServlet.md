@@ -1,16 +1,86 @@
+
+
+## Connection Vs Request 
+
+### Connection 
+
+- Socket Connection 
+- A connection is a TCP-based reliable pipeline between two endpoints. Each connection requires keeping track of both endpoint addresses/ports, sequence numbers, and which packets are unacknowledged or presumed missing. There may be zero or more connections per session
+- TCP 에서 three way hand shake 이후의 pipe line 
+- keep -alive 등으로 계속 연결된다 
+
+
+### Request
+
+- Connection이 맺어진 이후, client가 server에게 보내는 요청 
+- 한개의 Connection에서 여러개의 Request를 보낼 수 있다. 
+
+
+## Connector in Tomcat
+
+- Socket Connection을 accept 함 
+- Parse 후 ServletRequest로 변환하여 Servlet으로 forwarding
+
+## BIO connector vs  NIO Connector
+
+### BIO Connector  - Thread per connection
+
+- 1 connection 당 1 thread 를 사용한다. 
+- connection을 맺고 client가 10초 간격으로 request를 보내도, thread는 계속 할당되어 있다 
+- user측에서 connection을 놓아주던가.. timeout으로 돌아오는 수 밖에..
+
+<img src="https://velog.velcdn.com/images%2Fjihoson94%2Fpost%2F21e95eac-84c7-4933-8af4-f33717fc3a8d%2F%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA%202021-05-21%20%E1%84%8B%E1%85%A9%E1%84%92%E1%85%AE%202.37.50.png">
+
+- JIOEndpoint object가 request를 처리함
+- JIOEndpoint는 Acceptor 와 Worker를 관리함
+- Acceptor는 single thread가 할당된, socket accept 담당
+- Worker는 request를 처리할 thread pool임
+    - Worker에 thread pool 은 어떻게 설정가능함 - server.tomcat.thread.max  /min-spare 등으로 설정가능
+- Acceptor는 socket connection을 받으면 idle한 worker thread가 있는지 확인하고, 없으면 block함
+
+
+- https://topic.alibabacloud.com/a/details-about-tomcat-connection-font-classtopic-s-color00c1decountfont-and-font-classtopic-s-color00c1dethreadfont-pool-and-details-about-tomcat-font-classtopic-s-color00c1dethreadfont-pool_1_27_32615492.html
+
+### NIO Connector - Theread per request
+
+- 1 request 당 1 thread 사용
+- connection마다 selector가 존재하고, 이를 순회하는 poller가 존재함
+
+<img src="https://velog.velcdn.com/images%2Fjihoson94%2Fpost%2Ffa4fe719-c515-45d8-b170-570ecd0051d2%2F%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA%202021-05-21%20%E1%84%8B%E1%85%A9%E1%84%92%E1%85%AE%204.09.26.png">
+
+- NIOEndpoint가request를 처리함 
+- Acceptor 와 Worker를 가지고 있지만, Poller라는게 추가되었음
+- 마찬가지로 Acceptor는 single thread가 할당된, socket accept 담당
+- Socket에서 connection을 받으면, 바로 worker에게 할당ㄹ하는 것이 아니라, poller queue에다 넣음 
+    - SocketChannel -> NioChannel -> PollerEvent로 바꿔서 넣음
+- Socket 마다 Selector 객체가 유지됨 (https://www.baeldung.com/java-nio-selector)
+- Poller는 Selector들을 순회하면서, readable socket이 있는지 찾고, 있으면 worker thread를 할당함 
+- 마찬가지로 Worker는 request를 처리할 thread pool임
+    - Worker에 thread pool 은 어떻게 설정가능함 - server.tomcat.thread.max  /min-spare 등으로 설정가능
+
+from : https://velog.io/@jihoson94/BIO-NIO-Connector-in-Tomcatse
+
+
+## Thread per connection vs Thread per request
+
+
 Client-to-Server Communication
 In HTTP 1.1, all connections between the browser and the server are considered persistent unless declared otherwise. Persistence, in this context, means to use a single TCP connection to send and receive multiple HTTP requests/responses, as opposed to opening a new connection for every single request/response pair.
 
 
-## Thread per connection vs Thread per request
 
 ### Thread per connection
 
 Until Tomcat 6, which is the implementation of Java EE 5 (and hence servlet 2.5), the default HTTP connector is asynchronous blocking and follows a one thread per connection model. This means that, in order to serve 100 concurrent users, it requires 100 active threads. We end up wasting resources (the thread), because connections may not be used heavily, but just enough to avoid a timeout.
 
+- Servlet 2.5(tomcat 6) 까지 http connector = async blocking 
+- 100 concurrent user = 100 active thread 
+- 많은 수의 connection 들이 사용된다. 
+
 In order to configure tomcat to use the non-blocking NIO connector instead of the default asynchronous blocking BIO, one simply needs to change the value of the protocol attribute of the connector tag in the server.xml from HTTP/1.1 to org.apache.coyote.http11.Http11NioProtocol.
 
-![IMAGE](resources/C08BEF6B9D7DE1BCD8AE69C07C5913EE.jpg =579x252)
+
+<img scr="https://docs.google.com/drawings/d/sySb0q7iCcywVOX6uaJBH7Q/image?w=579&h=252&rev=139&ac=1&parent=1s0ScFUZs9bqbMqXakRKzt4ASAj5eZXefYpq1or9klSc">
 
 ### Request per connection
 

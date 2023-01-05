@@ -1,5 +1,4 @@
 
-
 # GC
 
 ## Important rule of GC 
@@ -61,7 +60,7 @@ heap에 있는 객체들의 참조는 아래 4가지 중 한개
 - method static var -> heap
 
 2,3,4 가 외부 참조에 의한 root set
-<img src="./helloworld-329631-1.png">
+![image](./helloworld-329631-1.png)
 
 Class: Classes loaded by a system class loader; contains references to static variables as well
 Stack Local: Local variables and parameters to methods stored on the local stack
@@ -69,7 +68,7 @@ Active Java Threads: All active Java threads
 JNI References: Native code Java objects created for JNI calls; contains local variables, parameters to JNI methods, and global JNI references
 
 
-<img src="./helloworld-329631-2.png">
+![image](./helloworld-329631-2.png)
 
 
 ## Weak Generation 
@@ -99,8 +98,8 @@ Hotspot VM은 Weak Generational 가설을 활용해 아래와 같은 규칙을 �
 - 객체 생성시 eden space에 생성
 - eden space GC 시(minor GC) survivor 영역으로 모든 객체 반출
 
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/survivor-space-01.png">
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/survivor-space-02.png">
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/survivor-space-01.png)
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/survivor-space-02.png)
 
 
 ## TLAB - ThreadLocal Allocation Buffer
@@ -118,56 +117,56 @@ Hotspot VM은 Weak Generational 가설을 활용해 아래와 같은 규칙을 �
 - eden-> survivor 
 - survivor from <-> survivor to 
 
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-02.png">
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-02.png)
 
 객체를 할당하기 위해 minor gc 수행
 
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-03.png">
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-03.png)
 
 GC root에서 mark
 
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-04.png">
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-04.png)
 
 mark 객체 survivor space 복사 
 
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-05.png">
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-05.png)
 
 generation count를 1증가 
 
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-06.png">
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-06.png)
 
 eden space sweep
 
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-07.png">
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-07.png)
 
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-09.png">
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-09.png)
 
 minor gc시eden + survivor 영역을 mark
 
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-12.png">
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-12.png)
 
 sweep 후 eden-> survivor , generation count 증가
 
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-13.png">
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-13.png">
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-14.png">
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-15.png">
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-16.png">
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-13.png)
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-13.png)
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-14.png)
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-15.png)
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-16.png)
 
 eden space gc 수행중 ,survivor space에 메모리 할당이 불가능 (memory fragmentation problem)
 https://stackoverflow.com/questions/10695298/java-gc-why-two-survivor-regions
 
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-17.png">
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-18.png">
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-17.png)
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-18.png)
 
 survivor from -> survivor to , eden-> survivor 수행
 
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-19.png">
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-19.png)
 
 
 ### Card Table
 
-<img src="https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-25.png">
+![image](https://perfectacle.github.io/2019/05/07/jvm-gc-basic/minor-gc-25.png)
 
 - OldGeneration의 모든 객체에서 mark & sweep을 수행하면 시간이 오래걸린다.
 - OldGeneration의 참조형 필드값이 변경되면 old 객체가 객체를 참조하고 있다는 flag만 기록 

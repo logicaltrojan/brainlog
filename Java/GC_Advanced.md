@@ -61,8 +61,8 @@
 
 - 만약 marking 중에 새로운 객체가 생성되고, ref된다면? 
 
-<img src="https://perfectacle.github.io/2019/05/11/jvm-gc-advanced/tri-color-marking-issue-01.png">
-<img src="https://perfectacle.github.io/2019/05/11/jvm-gc-advanced/tri-color-marking-issue-02.png">
+![image](https://perfectacle.github.io/2019/05/11/jvm-gc-advanced/tri-color-marking-issue-01.png)
+![image](https://perfectacle.github.io/2019/05/11/jvm-gc-advanced/tri-color-marking-issue-02.png)
 
 1. A는 검은색으로 marking 되어 있어서 더이상 mark thread가 travel하지 않는데, ref가 추가되어 버림
 2. C는 회색으로 marking 되어있는데, 죽은 객체임
@@ -120,24 +120,23 @@ Java 9 default GC ( - java 17 default gc )
 
 기존 heap layout
 
-<img src="https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/HeapStructure.png">
+![image](https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/HeapStructure.png)
 
 
 G1 Heap layout 
-<img src="https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide9.png">
+![image](https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide9.png)
 
 - region으로 구성 
 - 1mb default(differ from heap size, heap size /2048(4096)) 
-
-
 - Global Marking phase를 진행(similar to CMS)
 - Marking 이후에 어떤 region이 garbage 가 많은지 알 수 있음
 - 선별된 region을 GC 하면, 많은 free space 확보 가능
 - G1 은 STW가 존재한다.(not real-time collector)
 
-Note: G1 has both concurrent (runs along with application threads, e.g., refinement, marking, cleanup) and parallel (multi-threaded, e.g., stop the world) phases. Full garbage collections are still single threaded, but if tuned properly your applications should avoid full GCs.
+![image](https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide9.png)
 
-
+- Eden / Survivor / Old 가 존재 
+- Humongous region - region size의 50% 넘어가면 region을 묶어서 할당 
 
 G1 Algorithm
 
@@ -149,31 +148,19 @@ G1 Algorithm
 4. 재마킹
 5. 정리
 
-1. G1 Heap 
 
-Heap은 단일메모리영역이다.
+#### Young GC in G1
 
-<img src="https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide8.png">
-
-2. G1 Heap Allocation
-
-<img src="https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide9.png">
-
-- Eden / Survivor / Old 가 존재 
-- Humongous region - region size의 50% 넘어가면 region을 묶어서 할당 
-
-3. Young GC in G1
-
-<img src="https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide11.png">
+![image](https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide11.png)
 
 - STW 
-- Live object evaculation (copy / move) to one (or more survivor region)
-- 살아 있는 객체들은 survivor region으로 evaculated 됨, 몇개의 survivor region으로 evaculate 가능
+- Live object evacuation (copy / move) to one (or more survivor region)
+- 살아 있는 객체들은 survivor region으로 evacuated 됨, 몇개의 survivor region으로 evacuate 가능
 - Age count가 다 찬 객체들은 old로 이동
 - Eden/Survivor size calculation
 - 전부 evalucated 된 후 Young GC end
 
-<img src="https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide12.png">
+![image](https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide12.png)
 
 
 - YoungGC 는 parallel(multi thread) 진행
@@ -185,13 +172,14 @@ Full GC
 
 1. Initial Mark (STW)
 
-- YoungGC 이후에 바로 수행됨
+- YoungGC 단계
+- Eden -> Survivor
 
 ```sh
 (young)(inital -mark)
 ```
 
-<img src="https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide13.png">
+![image](https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide13.png)
 
 2. Root Region Scanning
 
@@ -205,21 +193,56 @@ Full GC
 - This happens while the application is running. This phase can be interrupted by young generation garbage collections.
 - 만약 region내 살아있는 객체가 없다면, remark phase에서 free하도록 Region 전체를 mark
 
-<img src="https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide14.png">
+![image](https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide14.png)
 
 4. Remark (STW)
 
-- empty region free 
-- Completes the marking of live object in the heap.
-- Uses an algorithm called snapshot-at-the-beginning (SATB) which is much faster than what was used in the CMS collector.
+- 3에서 region mark가 되어있는 region free (comple)
+- SATB를 사용하기 때문에, remark 작업은 오래걸리지 않는다.
 
-<img src="https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide15.png">
+![image](https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide15.png)
 
 5. CleanUp (STW, concurrent)
 
 Performs accounting on live objects and completely free regions. (Stop the world)
 Scrubs the Remembered Sets. (Stop the world)
 Reset the empty regions and return them to the free list. (Concurrent)
+
+* Copying(space reclamation) - evacuation progress - STW
+
+evacuate or copy live objects to new unused regions. 
+This can be done with young generation regions which are logged as [GC pause (young)]. 
+Or both young and old generation regions which are logged as [GC Pause (mixed)]
+
+
+## Garbage Collection Cycle
+
+
+Young Only Phase 
+
+- 지속적으로 minor GC 를 수행한다. (eden -> survivor , survivor -> old)
+- old gen 비율이(XX:InitiatingHeapOccupancyPercent(Old gen)) threshold가 넘는 순간, Major GC init
+- Initial Mark : MajorGC가 init되면, MinorGC 와 동시에 marking phase 수행 -> marking root (STW) + minor GC(STW) 라서 STW가 크다 
+- 지속적으로 concurrent marking 수행 + minor GC 
+- Remark : STW , region 별 살아있는 객체 확정, SATB 사용 
+- CleanUP : region 이 전부 회수 가능하면 회수, 남아 있는 region을 보고 space reclamination 진행 여부 결정, 이 단계에서는 어떤 region이 회수율이 좋을지 안다. 
+
+Space-reclamation phase 
+
+- 회수율이 높은 region부터 Major GC( evacuation + compaction 수행 )
+
+
+
+![image](https://docs.oracle.com/javase/9/gctuning/img/jsgct_dt_001_grbgcltncyl.png)
+![image](./g1_cycle.png)
+
+
+- 사이클 중 모든 원은 STW 
+- 파랑 원 : minor GC STW 
+- 주황 원 : marking STW
+- 빨강 원 : mixed GC STW
+
+
 
 
 Rset : Heap 외부에서 내부를 참조하는 레퍼런스 관리 
@@ -231,5 +254,6 @@ Rset : Heap 외부에서 내부를 참조하는 레퍼런스 관리
 - Rset을 유지해서 외부에서 내부를 참조하는 reference를 표시 
 - Rset 이 전부 0 면, 참조가 없다는 뜻 
 
-<img src="https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide16.png">
-<img src="https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide17.png">
+![image](https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide16.png)
+![image](https://www.oracle.com/webfolder/technetwork/tutorials/obe/java/G1GettingStarted/images/slide17.png)
+
